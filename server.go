@@ -13,6 +13,7 @@ import (
 type Server struct {
 	// Debug enables more verbose messaging.
 	Debug            bool
+	Address          uint8
 	listeners        []net.Listener
 	ports            []serial.Port
 	portsWG          sync.WaitGroup

@@ -59,6 +59,10 @@ func (s *Server) acceptSerialRequests(port serial.Port) {
 				//return
 			}
 
+			if s.Address > 0 && frame.Address > 0 && frame.Address != s.Address {
+				continue
+			}
+
 			request := &Request{port, frame}
 
 			s.requestChan <- request
