@@ -2,11 +2,16 @@ package mbserver
 
 import (
 	"encoding/binary"
+
+	"github.com/gogf/gf/v2/container/gtype"
 )
 
 // ReadCoils function 1, reads coils from internal memory.
 func ReadCoils(s *Server, frame Framer) ([]byte, *Exception) {
 	register, numRegs, endRegister := registerAddressAndNumber(frame)
+	if frame.GetAddress() != s.Address {
+		return []byte{}, &IllegalDataAddress
+	}
 	if endRegister > 65535 {
 		return []byte{}, &IllegalDataAddress
 	}
@@ -17,7 +22,7 @@ func ReadCoils(s *Server, frame Framer) ([]byte, *Exception) {
 	data := make([]byte, 1+dataSize)
 	data[0] = byte(dataSize)
 	for i, value := range s.Coils[register:endRegister] {
-		if value != 0 {
+		if value.Val() != 0 {
 			shift := uint(i) % 8
 			data[1+i/8] |= byte(1 << shift)
 		}
@@ -28,6 +33,9 @@ func ReadCoils(s *Server, frame Framer) ([]byte, *Exception) {
 // ReadDiscreteInputs function 2, reads discrete inputs from internal memory.
 func ReadDiscreteInputs(s *Server, frame Framer) ([]byte, *Exception) {
 	register, numRegs, endRegister := registerAddressAndNumber(frame)
+	if frame.GetAddress() != s.Address {
+		return []byte{}, &IllegalDataAddress
+	}
 	if endRegister > 65535 {
 		return []byte{}, &IllegalDataAddress
 	}
@@ -38,7 +46,7 @@ func ReadDiscreteInputs(s *Server, frame Framer) ([]byte, *Exception) {
 	data := make([]byte, 1+dataSize)
 	data[0] = byte(dataSize)
 	for i, value := range s.DiscreteInputs[register:endRegister] {
-		if value != 0 {
+		if value.Val() != 0 {
 			shift := uint(i) % 8
 			data[1+i/8] |= byte(1 << shift)
 		}
@@ -49,19 +57,25 @@ func ReadDiscreteInputs(s *Server, frame Framer) ([]byte, *Exception) {
 // ReadHoldingRegisters function 3, reads holding registers from internal memory.
 func ReadHoldingRegisters(s *Server, frame Framer) ([]byte, *Exception) {
 	register, numRegs, endRegister := registerAddressAndNumber(frame)
+	if frame.GetAddress() != s.Address {
+		return []byte{}, &IllegalDataAddress
+	}
 	if endRegister > 65536 {
 		return []byte{}, &IllegalDataAddress
 	}
-	return append([]byte{byte(numRegs * 2)}, Uint16ToBytes(s.HoldingRegisters[register:endRegister])...), &Success
+	return append([]byte{byte(numRegs * 2)}, GUint32ToBytes(s.HoldingRegisters[register:endRegister])...), &Success
 }
 
 // ReadInputRegisters function 4, reads input registers from internal memory.
 func ReadInputRegisters(s *Server, frame Framer) ([]byte, *Exception) {
 	register, numRegs, endRegister := registerAddressAndNumber(frame)
+	if frame.GetAddress() != s.Address {
+		return []byte{}, &IllegalDataAddress
+	}
 	if endRegister > 65536 {
 		return []byte{}, &IllegalDataAddress
 	}
-	return append([]byte{byte(numRegs * 2)}, Uint16ToBytes(s.InputRegisters[register:endRegister])...), &Success
+	return append([]byte{byte(numRegs * 2)}, GUint32ToBytes(s.InputRegisters[register:endRegister])...), &Success
 }
 
 // WriteSingleCoil function 5, write a coil to internal memory.
@@ -71,14 +85,14 @@ func WriteSingleCoil(s *Server, frame Framer) ([]byte, *Exception) {
 	if value != 0 {
 		value = 1
 	}
-	s.Coils[register] = byte(value)
+	s.Coils[register].Set(byte(value))
 	return frame.GetData()[0:4], &Success
 }
 
 // WriteHoldingRegister function 6, write a holding register to internal memory.
 func WriteHoldingRegister(s *Server, frame Framer) ([]byte, *Exception) {
 	register, value := registerAddressAndValue(frame)
-	s.HoldingRegisters[register] = value
+	s.HoldingRegisters[register].Set(uint32(value))
 	return frame.GetData()[0:4], &Success
 }
 
@@ -99,7 +113,7 @@ func WriteMultipleCoils(s *Server, frame Framer) ([]byte, *Exception) {
 	bitCount := 0
 	for i, value := range valueBytes {
 		for bitPos := uint(0); bitPos < 8; bitPos++ {
-			s.Coils[register+(i*8)+int(bitPos)] = bitAtPosition(value, bitPos)
+			s.Coils[register+(i*8)+int(bitPos)].Set(bitAtPosition(value, bitPos))
 			bitCount++
 			if bitCount >= numRegs {
 				break
@@ -126,7 +140,12 @@ func WriteHoldingRegisters(s *Server, frame Framer) ([]byte, *Exception) {
 
 	// Copy data to memroy
 	values := BytesToUint16(valueBytes)
-	valuesUpdated := copy(s.HoldingRegisters[register:], values)
+	// valuesUpdated := copy(s.HoldingRegisters[register:], values)
+	valuesUpdated := 0
+	for i, j := 0, register; i < len(values) && j < len(s.HoldingRegisters); i, j = i+1, j+1 {
+		s.HoldingRegisters[j].Set(uint32(values[i]))
+		valuesUpdated++
+	}
 	if valuesUpdated == numRegs {
 		exception = &Success
 		data = frame.GetData()[0:4]
@@ -153,6 +172,26 @@ func Uint16ToBytes(values []uint16) []byte {
 
 	for i, value := range values {
 		binary.BigEndian.PutUint16(bytes[i*2:(i+1)*2], value)
+	}
+	return bytes
+}
+
+// BytesToGUint32 converts a big endian array of bytes to an array of gtype uint32s
+func BytesToGUint32(bytes []byte) []gtype.Uint32 {
+	values := make([]gtype.Uint32, len(bytes)/2)
+
+	for i := range values {
+		values[i].Set(uint32(binary.BigEndian.Uint16(bytes[i*2 : (i+1)*2])))
+	}
+	return values
+}
+
+// GUint32ToBytes converts an array of gtype uint32s to a big endian array of bytes
+func GUint32ToBytes(values []gtype.Uint32) []byte {
+	bytes := make([]byte, len(values)*2)
+
+	for i, value := range values {
+		binary.BigEndian.PutUint16(bytes[i*2:(i+1)*2], uint16(value.Val()))
 	}
 	return bytes
 }

@@ -72,6 +72,11 @@ func (frame *RTUFrame) GetData() []byte {
 	return frame.Data
 }
 
+// GetAddress returns the RTUFrame Address field.
+func (frame *RTUFrame) GetAddress() uint8 {
+	return frame.Address
+}
+
 // SetData sets the RTUFrame Data byte field and updates the frame length
 // accordingly.
 func (frame *RTUFrame) SetData(data []byte) {

@@ -18,10 +18,10 @@ func isEqual(a interface{}, b interface{}) bool {
 func TestReadCoils(t *testing.T) {
 	s := NewServer()
 	// Set the coil values
-	s.Coils[10] = 1
-	s.Coils[11] = 1
-	s.Coils[17] = 1
-	s.Coils[18] = 1
+	s.Coils[10].Set(1)
+	s.Coils[11].Set(1)
+	s.Coils[17].Set(1)
+	s.Coils[18].Set(1)
 
 	var frame TCPFrame
 	frame.TransactionIdentifier = 1
@@ -52,10 +52,10 @@ func TestReadCoils(t *testing.T) {
 func TestReadDiscreteInputs(t *testing.T) {
 	s := NewServer()
 	// Set the discrete input values
-	s.DiscreteInputs[0] = 1
-	s.DiscreteInputs[7] = 1
-	s.DiscreteInputs[8] = 1
-	s.DiscreteInputs[9] = 1
+	s.DiscreteInputs[0].Set(1)
+	s.DiscreteInputs[7].Set(1)
+	s.DiscreteInputs[8].Set(1)
+	s.DiscreteInputs[9].Set(1)
 
 	var frame TCPFrame
 	frame.TransactionIdentifier = 1
@@ -84,9 +84,9 @@ func TestReadDiscreteInputs(t *testing.T) {
 // Function 3
 func TestReadHoldingRegisters(t *testing.T) {
 	s := NewServer()
-	s.HoldingRegisters[100] = 1
-	s.HoldingRegisters[101] = 2
-	s.HoldingRegisters[102] = 65535
+	s.HoldingRegisters[100].Set(1)
+	s.HoldingRegisters[101].Set(2)
+	s.HoldingRegisters[102].Set(65535)
 
 	var frame TCPFrame
 	frame.TransactionIdentifier = 1
@@ -114,9 +114,9 @@ func TestReadHoldingRegisters(t *testing.T) {
 // Function 4
 func TestReadInputRegisters(t *testing.T) {
 	s := NewServer()
-	s.InputRegisters[200] = 1
-	s.InputRegisters[201] = 2
-	s.InputRegisters[202] = 65535
+	s.InputRegisters[200].Set(1)
+	s.InputRegisters[201].Set(2)
+	s.InputRegisters[202].Set(65535)
 
 	var frame TCPFrame
 	frame.TransactionIdentifier = 1
@@ -216,7 +216,7 @@ func TestWriteMultipleCoils(t *testing.T) {
 		t.FailNow()
 	}
 	expect := []byte{1, 1}
-	got := s.Coils[1:3]
+	got := []byte{s.Coils[1].Val(), s.Coils[1].Val()}
 	if !isEqual(expect, got) {
 		t.Errorf("expected %v, got %v\n", expect, got)
 	}

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/goburrow/serial"
+	"github.com/gogf/gf/v2/container/gtype"
 )
 
 // Server is a Modbus slave with allocated memory for discrete inputs, coils, etc.
@@ -20,10 +21,10 @@ type Server struct {
 	portsCloseChan   chan struct{}
 	requestChan      chan *Request
 	function         [256](func(*Server, Framer) ([]byte, *Exception))
-	DiscreteInputs   []byte
-	Coils            []byte
-	HoldingRegisters []uint16
-	InputRegisters   []uint16
+	DiscreteInputs   []gtype.Byte
+	Coils            []gtype.Byte
+	HoldingRegisters []gtype.Uint32
+	InputRegisters   []gtype.Uint32
 }
 
 // Request contains the connection and Modbus frame.
@@ -36,11 +37,13 @@ type Request struct {
 func NewServer() *Server {
 	s := &Server{}
 
+	s.Address = 1
+
 	// Allocate Modbus memory maps.
-	s.DiscreteInputs = make([]byte, 65536)
-	s.Coils = make([]byte, 65536)
-	s.HoldingRegisters = make([]uint16, 65536)
-	s.InputRegisters = make([]uint16, 65536)
+	s.DiscreteInputs = make([]gtype.Byte, 65536)
+	s.Coils = make([]gtype.Byte, 65536)
+	s.HoldingRegisters = make([]gtype.Uint32, 65536)
+	s.InputRegisters = make([]gtype.Uint32, 65536)
 
 	// Add default functions.
 	s.function[1] = ReadCoils

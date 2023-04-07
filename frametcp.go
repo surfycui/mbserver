@@ -69,6 +69,11 @@ func (frame *TCPFrame) GetData() []byte {
 	return frame.Data
 }
 
+// GetAddress returns the TCPFrame Device field.
+func (frame *TCPFrame) GetAddress() uint8 {
+	return frame.Device
+}
+
 // SetData sets the TCPFrame Data byte field and updates the frame length
 // accordingly.
 func (frame *TCPFrame) SetData(data []byte) {

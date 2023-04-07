@@ -123,8 +123,8 @@ func TestModbus(t *testing.T) {
 	}
 
 	// Input registers
-	s.InputRegisters[65530] = 1
-	s.InputRegisters[65535] = 65535
+	s.InputRegisters[65530].Set(1)
+	s.InputRegisters[65535].Set(65535)
 	results, err = client.ReadInputRegisters(65530, 6)
 	if err != nil {
 		t.Errorf("expected nil, got %v\n", err)
